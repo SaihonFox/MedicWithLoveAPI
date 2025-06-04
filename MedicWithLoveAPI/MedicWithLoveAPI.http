@@ -1,0 +1,6 @@
+@MedicWithLoveAPI_HostAddress = http://localhost:5034
+
+GET {{MedicWithLoveAPI_HostAddress}}/api
+Accept: application/json
+
+###

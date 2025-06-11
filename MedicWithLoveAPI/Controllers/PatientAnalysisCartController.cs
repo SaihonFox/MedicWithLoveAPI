@@ -15,6 +15,6 @@ public class PatientAnalysisCartController(PgSQLContext context) : ControllerBas
 	{
 		var patientAnalysisCartEntry = await context.PatientAnalysisCarts.AddAsync(new PatientAnalysisCart { PatientId = patientAnalysisCart.PatientId });
 		await context.SaveChangesAsync();
-		return Ok(patientAnalysisCartEntry.Entity);
+		return Ok(context.PatientAnalysisCarts.Find(patientAnalysisCartEntry.Entity.Id));
 	}
 }

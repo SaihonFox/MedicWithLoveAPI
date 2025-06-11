@@ -29,24 +29,30 @@ public class RequestsController(PgSQLContext context) : ControllerBase
 	[HttpPost]
 	public async Task<ActionResult<Request>> PostRequest([FromBody] RequestDTO request, [FromQuery] bool ignoreId = true)
 	{
-		var newAnalysis = await context.Requests.AddAsync(new Request
+		var newRequest = await context.Requests.AddAsync(new Request
 		{
 			AnalysisDatetime = request.AnalysisDatetime,
 			DoctorId = request.DoctorId,
 			PatientId = request.PatientId,
 			Comment = request.Comment,
 			RequestSended = request.RequestSended,
-			RequestStateId = request.RequestStateId
+			RequestStateId = request.RequestStateId,
+			PatientAnalysisCartId = request.PatientAnalysisCartId
 		});
 		await context.SaveChangesAsync();
-		return CreatedAtAction(nameof(GetRequest), new { id = newAnalysis.Entity.Id }, newAnalysis.Entity);
+		return Ok(await context.Requests.Include(x => x.Doctor).Include(x => x.Patient).Include(x => x.PatientAnalysisCart).Include(x => x.RequestState).FirstAsync(x => x.Id == newRequest.Entity.Id));
 	}
 
 	[HttpPut]
 	public async Task<ActionResult<Request>> PutRequest([FromBody] RequestDTO request)
 	{
-		var updatedRequest = context.Requests.Update(request);
+		var updatedRequest = await context.Requests.FindAsync(request.Id);
+
+		updatedRequest!.RequestStateId = request.RequestStateId;
+		updatedRequest.RequestChanged = request.RequestChanged;
+
+		var requestEntry = context.Requests.Update(updatedRequest);
 		await context.SaveChangesAsync();
-		return Ok(updatedRequest.Entity);
+		return Ok(await context.Requests.Include(x => x.Doctor).Include(x => x.Patient).Include(x => x.PatientAnalysisCart).Include(x => x.RequestState).FirstAsync(x => x.Id == requestEntry.Entity.Id));
 	}
 }

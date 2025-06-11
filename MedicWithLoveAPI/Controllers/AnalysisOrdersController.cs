@@ -13,10 +13,16 @@ namespace MedicWithLoveAPI.Controllers;
 public class AnalysisOrdersController(PgSQLContext context, EmailService emailService) : ControllerBase
 {
 	[HttpGet]
-	public async Task<ActionResult<List<AnalysisOrder>>> Get() => Ok(await context.AnalysisOrders.ToListAsync());
+	public async Task<ActionResult<List<AnalysisOrder>>> Get() => Ok(await context.AnalysisOrders.OrderBy(x => x.Id).ToListAsync());
 	
 	[HttpGet("user")]
-	public ActionResult<List<AnalysisOrder>> Get4User([FromQuery] int id) => Ok(context.AnalysisOrders.ToList().Where(x => x.UserId == id));
+	public ActionResult<List<AnalysisOrder>> Get4User([FromQuery] int id) => Ok(context.AnalysisOrders
+		.Include(x => x.Patient)
+		.Include(x => x.User)
+		.Include(x => x.PatientAnalysisCart)
+			.ThenInclude(x => x.PatientAnalysisCartItems)
+				.ThenInclude(x => x.Analysis)
+		.ToList().Where(x => x.UserId == id));
 
 	[HttpGet("{id}")]
 	public async Task<ActionResult<AnalysisOrder>> Get(int id) => await context.AnalysisOrders.FindAsync(id) is { } order ? Ok(order) : NotFound($"AnalysisOrder with ID {id} not found");
@@ -36,11 +42,25 @@ public class AnalysisOrdersController(PgSQLContext context, EmailService emailSe
 			.FirstAsync(x => x.Id == analysisOrderEntry.Entity.Id);
 		var patient = await context.Patients.FindAsync(analysisOrder.PatientId);
 
-
 		if (!string.IsNullOrWhiteSpace(patient!.Email))
 			emailService.SendEmailPatientOrder("tirilnar@gmail.com", order);
 
 		return Ok(await context.Users.FindAsync(analysisOrder.UserId));
+	}
+
+	[HttpPut]
+	public async Task<ActionResult<AnalysisOrder>> Update([FromBody] AnalysisOrderDTO analysisOrder)
+	{
+		if (analysisOrder == null)
+			return BadRequest("Analysis object cannot be null.");
+
+		var updatedAnalysisOrder = await context.AnalysisOrders.FindAsync(analysisOrder.Id);
+
+		updatedAnalysisOrder!.AnalysisOrderStateId = analysisOrder.AnalysisOrderStateId;
+
+		var analysisOrderEntry = context.AnalysisOrders.Update(updatedAnalysisOrder);
+		await context.SaveChangesAsync();
+		return Ok(analysisOrderEntry.Entity);
 	}
 
 	[HttpDelete("{id}")]

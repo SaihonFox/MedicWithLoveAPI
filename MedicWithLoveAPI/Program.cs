@@ -28,7 +28,7 @@ public class Program
 
 		builder.Services.AddControllers(options => options.Conventions.Add(new SnakeCaseControllerModelConvention())).AddNewtonsoftJson(options =>
 		{
-			options.SerializerSettings.Converters.Add(new DateTimeConverter());
+			//options.SerializerSettings.Converters.Add(new DateTimeConverter());
 
 			options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
 			options.SerializerSettings.DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate;
@@ -50,7 +50,12 @@ public class Program
 		});
 
 		builder.Services.AddSwaggerGen();
-		builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
+		builder.Services.AddSignalR(options =>
+		{
+			options.DisableImplicitFromServicesParameters = true;
+			options.EnableDetailedErrors = true;
+		});
+		builder.Services.AddSignalRCore();
 
 		builder.Services.AddCors(options =>
 		{
@@ -65,6 +70,7 @@ public class Program
 
 		builder.Services.AddScoped<EmailService>();
 
+		
 		builder.Services.AddResponseCompression(options =>
 		{
 			options.EnableForHttps = true;
@@ -83,6 +89,10 @@ public class Program
 		app.MapHub<PatientHub>("/hub/patient");
 		app.MapHub<RequestHub>("/hub/request");
 		app.MapHub<UserHub>("/hub/user");
+
+		app.UseRouting();
+
+		app.UseAuthorization();
 
 		if (app.Environment.IsProduction() || app.Environment.IsDevelopment())
 		{
@@ -134,8 +144,6 @@ public class Program
 		});
 
 		app.UseCors("AllowAllOrigins");
-
-		app.UseAuthorization();
 
 		app.MapControllers();
 

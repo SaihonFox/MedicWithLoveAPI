@@ -10,20 +10,16 @@ namespace MedicWithLoveAPI.Controllers;
 [Route("api/[controller]")]
 public class AnalysisCategoriesListsController(PgSQLContext context) : ControllerBase
 {
-	private readonly PgSQLContext _context = context;
-
-	// GET: api/AnalysisCategories
 	[HttpGet]
 	public async Task<ActionResult<IEnumerable<AnalysisCategoriesList>>> GetAnalysisCategoriesLists()
 	{
-		return await _context.AnalysisCategoriesLists.ToListAsync();
+		return await context.AnalysisCategoriesLists.OrderBy(x => x.Id).ToListAsync();
 	}
 
-	// GET: api/AnalysisCategories/5
 	[HttpGet("{id}")]
 	public async Task<ActionResult<AnalysisCategoriesList>> GetAnalysisList(int id)
 	{
-		var analysisCategory = await _context.AnalysisCategoriesLists.FindAsync(id);
+		var analysisCategory = await context.AnalysisCategoriesLists.FindAsync(id);
 
 		if (analysisCategory == null)
 		{
@@ -33,19 +29,35 @@ public class AnalysisCategoriesListsController(PgSQLContext context) : Controlle
 		return analysisCategory;
 	}
 
-	// PUT: api/AnalysisCategories/5
-	// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+	[HttpPost]
+	public async Task<IActionResult> UpdateCategories4Analysis([FromQuery] int analysisId, [FromBody] int[] categoryIds)
+	{
+		var categoriesInAnalysis = await context.AnalysisCategoriesLists.ToListAsync();
+		categoriesInAnalysis = categoriesInAnalysis.Where(x => x.Analysis.Id == analysisId).ToList();
+		context.AnalysisCategoriesLists.RemoveRange(categoriesInAnalysis);
+		await context.SaveChangesAsync();
+
+		foreach (var categoryId in categoryIds)
+		{
+			var category = await context.AnalysisCategories.FindAsync(categoryId);
+			await context.AnalysisCategoriesLists.AddAsync(new AnalysisCategoriesList { AnalysisId = analysisId, AnalysisCategoryId = categoryId });
+			await context.SaveChangesAsync();
+		}
+
+		return Ok();
+	}
+
 	[HttpPut("{id}")]
 	public async Task<IActionResult> PutAnalysisCategoriesList(int id, [FromBody] AnalysisCategoriesListDTO analysisCategoriesList)
 	{
 		if (id != analysisCategoriesList.Id)
 			return BadRequest();
 
-		_context.Entry(analysisCategoriesList).State = EntityState.Modified;
+		context.Entry(analysisCategoriesList).State = EntityState.Modified;
 
 		try
 		{
-			await _context.SaveChangesAsync();
+			await context.SaveChangesAsync();
 		}
 		catch (DbUpdateConcurrencyException)
 		{
@@ -62,35 +74,24 @@ public class AnalysisCategoriesListsController(PgSQLContext context) : Controlle
 		return NoContent();
 	}
 
-	// POST: api/AnalysisCategories
-	// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-	[HttpPost]
-	public async Task<ActionResult<AnalysisCategoriesList>> PostAnalysisCategory([FromBody] AnalysisCategoriesListDTO analysisCategoriesList)
-	{
-		_context.AnalysisCategoriesLists.Add(analysisCategoriesList);
-		await _context.SaveChangesAsync();
-
-		return CreatedAtAction("GetAnalysisCategory", new { id = analysisCategoriesList.Id }, analysisCategoriesList);
-	}
-
 	// DELETE: api/AnalysisCategories/5
 	[HttpDelete("{id}")]
 	public async Task<IActionResult> DeleteAnalysisCategoryList(int id)
 	{
-		var analysisCategoriesList = await _context.AnalysisCategoriesLists.FindAsync(id);
+		var analysisCategoriesList = await context.AnalysisCategoriesLists.FindAsync(id);
 		if (analysisCategoriesList == null)
 		{
 			return NotFound();
 		}
 
-		_context.AnalysisCategoriesLists.Remove(analysisCategoriesList);
-		await _context.SaveChangesAsync();
+		context.AnalysisCategoriesLists.Remove(analysisCategoriesList);
+		await context.SaveChangesAsync();
 
 		return NoContent();
 	}
 
 	private bool AnalysisCategoryListExists(int id)
 	{
-		return _context.AnalysisCategoriesLists.Any(e => e.Id == id);
+		return context.AnalysisCategoriesLists.Any(e => e.Id == id);
 	}
 }

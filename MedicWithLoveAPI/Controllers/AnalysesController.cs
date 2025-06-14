@@ -4,7 +4,6 @@ using MedicWithLoveAPI.Models;
 using MedicWithLoveAPI.ModelsDTO;
 using MedicWithLoveAPI.ModelsContext;
 using Microsoft.EntityFrameworkCore;
-using MedicWithLoveAPI.Hubs;
 
 namespace MedicWithLoveAPI.Controllers;
 
@@ -14,6 +13,9 @@ public class AnalysesController(PgSQLContext context) : ControllerBase
 {
 	[HttpGet]
 	public async Task<ActionResult<IEnumerable<Analysis>>> GetAnalyses() => Ok(await context.Analyses.Include(x => x.AnalysisCategoriesLists).Include(x => x.PatientAnalysisCartItems).OrderBy(x => x.Id).ToListAsync());
+
+	[HttpGet("dto")]
+	public async Task<ActionResult<IEnumerable<AnalysisDTO>>> GetAnalysesDTO() => Ok(await context.Analyses.OrderBy(x => x.Id).ToListAsync());
 
 	[HttpGet("{id:int}")]
 	public async Task<ActionResult<Analysis>> GetAnalysis(int id)
